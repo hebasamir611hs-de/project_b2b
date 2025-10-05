@@ -1,0 +1,45 @@
+# Python Playwright Automation Pipeline
+# This pipeline installs dependencies, runs Playwright tests, and reports results to Azure Pipelines.
+
+trigger:
+- main
+
+pool:
+  vmImage: 'ubuntu-latest'
+
+strategy:
+  matrix:
+    Python310:
+      python.version: '3.10'
+
+steps:
+# Step 1: Set up Python version
+- task: UsePythonVersion@0
+  inputs:
+    versionSpec: '$(python.version)'
+  displayName: 'Use Python $(python.version)'
+
+# Step 2: Install dependencies
+- script: |
+    python -m pip install --upgrade pip
+    pip install -r requirements.txt
+    pip install playwright pytest pytest-azurepipelines
+  displayName: 'Install dependencies'
+
+# Step 3: Install Playwright browsers
+- script: |
+    python -m playwright install --with-deps
+  displayName: 'Install Playwright browsers'
+
+# Step 4: Run tests
+- script: |
+    pytest --maxfail=1 --disable-warnings -q
+  displayName: 'Run Playwright tests'
+
+# Step 5: Publish test results to Azure DevOps
+- task: PublishTestResults@2
+  condition: succeededOrFailed()
+  inputs:
+    testResultsFiles: '**/TEST-*.xml'
+    testRunTitle: 'Playwright Test Results'
+  displayName: 'Publish Test Results'
